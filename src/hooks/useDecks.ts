@@ -1,10 +1,9 @@
 import { useEffect, useState } from 'react'
 import { createBuiltInDecks, STARTER_DECK_ID } from '../data/starterDeck'
-import { parseFlashcardCsv, slugify } from '../lib/csv'
+import { parseFlashcardCsv, slugify, makeCardIds } from '../lib/csv'
 import {
   loadActiveDeckId,
   loadDecks,
-  makeCardIds,
   resetDeckProgress,
   saveActiveDeckId,
   saveDecks,

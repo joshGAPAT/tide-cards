@@ -182,3 +182,13 @@ export function slugify(input: string): string {
       .slice(0, 40) || 'deck'
   )
 }
+
+export function makeCardIds(
+  cards: Omit<Flashcard, 'id'>[],
+  deckId: string,
+): Flashcard[] {
+  return cards.map((card, i) => ({
+    ...card,
+    id: `${deckId}-${String(i + 1).padStart(4, '0')}`,
+  }))
+}

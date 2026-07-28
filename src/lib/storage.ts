@@ -3,7 +3,7 @@ import {
   LEGACY_STARTER_DECK_ID,
   STARTER_DECK_ID,
 } from '../data/starterDeck'
-import type { Deck, Flashcard } from '../types/deck'
+import type { Deck } from '../types/deck'
 import { createCardState, type CardState, type DeckProgress } from './scheduler'
 import { defaultSpeechSettings, type SpeechSettings } from './speech'
 
@@ -169,14 +169,4 @@ export function loadSpeechSettings(): SpeechSettings {
 
 export function saveSpeechSettings(settings: SpeechSettings): void {
   localStorage.setItem(SPEECH_KEY, JSON.stringify(settings))
-}
-
-export function makeCardIds(
-  cards: Omit<Flashcard, 'id'>[],
-  deckId: string,
-): Flashcard[] {
-  return cards.map((card, i) => ({
-    ...card,
-    id: `${deckId}-${String(i + 1).padStart(4, '0')}`,
-  }))
 }
