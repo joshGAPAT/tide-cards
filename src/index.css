@@ -1,0 +1,108 @@
+@import 'tailwindcss';
+
+:root {
+  --ink: #14252b;
+  --ink-soft: #3d5a63;
+  --foam: #f3f7f6;
+  --mist: #d7e8e4;
+  --tide: #0f4c5c;
+  --tide-deep: #0a3340;
+  --lagoon: #1f7a6e;
+  --coral: #e07a4b;
+  --sand: #f2e8d5;
+  --ok: #2f8f6b;
+  --hard: #c4892a;
+  --again: #c45c4a;
+  --easy: #3b7cc0;
+
+  font-family: 'Figtree', system-ui, sans-serif;
+  color: var(--ink);
+  background: var(--foam);
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background:
+    radial-gradient(1200px 600px at 10% -10%, #b8ddd6 0%, transparent 55%),
+    radial-gradient(900px 500px at 100% 0%, #f0dcc4 0%, transparent 50%),
+    linear-gradient(165deg, #eef6f4 0%, #dce9e6 45%, #e8efe8 100%);
+  background-attachment: fixed;
+}
+
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.35;
+  background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%230f4c5c' fill-opacity='0.04'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+}
+
+button,
+input,
+select {
+  font: inherit;
+}
+
+.font-display {
+  font-family: 'Fraunces', Georgia, serif;
+}
+
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes flip-in {
+  from {
+    opacity: 0;
+    transform: rotateX(-12deg) translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: rotateX(0) translateY(0);
+  }
+}
+
+@keyframes pulse-soft {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.04);
+  }
+}
+
+.animate-rise {
+  animation: rise-in 0.45s ease-out both;
+}
+
+.animate-flip {
+  animation: flip-in 0.4s ease-out both;
+  transform-origin: center top;
+}
+
+.animate-pulse-soft {
+  animation: pulse-soft 2.4s ease-in-out infinite;
+}
