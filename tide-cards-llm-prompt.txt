@@ -1,0 +1,28 @@
+Create a Tide Cards flashcard CSV for studying.
+
+OUTPUT RULES
+- Return ONLY a CSV file (no markdown fences, no commentary).
+- First row MUST be exactly this header:
+topic,question,answer,explanation
+- One flashcard per row.
+- Use UTF-8.
+- Quote any field that contains commas, quotes, or newlines.
+- Escape quotes by doubling them ("").
+- Keep answers short (a phrase or one sentence).
+- Keep explanations to one memorable sentence.
+- topic = short section/theme label (reuse topics across related cards).
+- Do not include id columns; the app generates ids.
+
+COLUMN MEANINGS
+- topic: grouping label (e.g. Porifera, Photosynthesis, Unit 4)
+- question: front of the card
+- answer: back of the card (concise)
+- explanation: short memory aid shown under the answer
+
+EXAMPLE ROWS
+topic,question,answer,explanation
+Porifera,What phylum do sponges belong to?,Porifera.,Porifera are the simplest animals and are filter feeders.
+Cnidaria,What two body forms do cnidarians have?,Polyp and medusa.,These are the two major body plans.
+
+SUBJECT / SOURCE
+Paste your notes or chapter content below, then generate as many useful flashcards as needed:
