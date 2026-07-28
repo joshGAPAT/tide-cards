@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import {
   defaultSpeechSettings,
   speak,
@@ -14,6 +14,8 @@ export function useSpeech() {
   )
   const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([])
   const [speaking, setSpeaking] = useState(false)
+  const settingsRef = useRef(settings)
+  settingsRef.current = settings
 
   useEffect(() => {
     saveSpeechSettings(settings)
@@ -26,7 +28,6 @@ export function useSpeech() {
     })
     return () => {
       cancelled = true
-      stopSpeaking()
     }
   }, [])
 
@@ -35,10 +36,11 @@ export function useSpeech() {
   }
 
   async function read(text: string) {
-    if (!settings.enabled) return
+    const current = settingsRef.current
+    if (!current.enabled) return
     setSpeaking(true)
     try {
-      await speak(text, settings)
+      await speak(text, current)
     } finally {
       setSpeaking(false)
     }

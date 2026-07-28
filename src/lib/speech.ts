@@ -14,6 +14,9 @@ export const defaultSpeechSettings: SpeechSettings = {
   voiceURI: null,
 }
 
+/** Bumps whenever speech is cancelled so in-flight speaks can abort. */
+let speakEpoch = 0
+
 function pickVoice(voiceURI: string | null): SpeechSynthesisVoice | null {
   if (typeof window === 'undefined' || !window.speechSynthesis) return null
   const voices = window.speechSynthesis.getVoices()
@@ -30,29 +33,61 @@ function pickVoice(voiceURI: string | null): SpeechSynthesisVoice | null {
   )
 }
 
-export function stopSpeaking(): void {
+/** Chrome often leaves synthesis stuck paused after cancel(). */
+function resetSynthesis(): void {
   if (typeof window === 'undefined' || !window.speechSynthesis) return
   window.speechSynthesis.cancel()
+  try {
+    window.speechSynthesis.resume()
+  } catch {
+    // ignore
+  }
 }
 
-export function speak(
+export function stopSpeaking(): void {
+  speakEpoch += 1
+  resetSynthesis()
+}
+
+function wait(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms))
+}
+
+export async function speak(
   text: string,
   settings: Pick<SpeechSettings, 'rate' | 'voiceURI'>,
 ): Promise<void> {
-  return new Promise((resolve) => {
-    if (typeof window === 'undefined' || !window.speechSynthesis) {
+  if (typeof window === 'undefined' || !window.speechSynthesis) return
+
+  const epoch = ++speakEpoch
+  resetSynthesis()
+
+  // Give cancel() a beat — otherwise the next utterance is often dropped.
+  await wait(60)
+  if (epoch !== speakEpoch) return
+
+  await new Promise<void>((resolve) => {
+    if (epoch !== speakEpoch) {
       resolve()
       return
     }
 
-    stopSpeaking()
     const utterance = new SpeechSynthesisUtterance(text)
     utterance.rate = Math.min(1.6, Math.max(0.7, settings.rate))
     const voice = pickVoice(settings.voiceURI)
     if (voice) utterance.voice = voice
+
     utterance.onend = () => resolve()
     utterance.onerror = () => resolve()
+
     window.speechSynthesis.speak(utterance)
+
+    // Chrome can silently pause; nudge it awake.
+    try {
+      window.speechSynthesis.resume()
+    } catch {
+      // ignore
+    }
   })
 }
 
@@ -89,7 +124,6 @@ export function whenVoicesReady(): Promise<SpeechSynthesisVoice[]> {
       resolve(getVoices())
     }
     window.speechSynthesis.addEventListener('voiceschanged', onVoices)
-    // Fallback if the event never fires
     setTimeout(() => resolve(getVoices()), 500)
   })
 }

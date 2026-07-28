@@ -12,30 +12,49 @@ export default function App() {
   const study = useStudyDeck(decks.activeDeck)
   const speech = useSpeech()
   const [revealed, setRevealed] = useState(false)
+  const [cardKey, setCardKey] = useState<string | null>(null)
   const [showSettings, setShowSettings] = useState(false)
 
   const current = study.current
   const active = decks.activeDeck
 
-  useEffect(() => {
-    setRevealed(false)
-  }, [current?.id])
+  // Reset reveal in the same render as the card change so we never
+  // briefly speak the new answer while revealed is still true.
+  if (current?.id !== cardKey) {
+    setCardKey(current?.id ?? null)
+    if (revealed) setRevealed(false)
+  }
 
   useEffect(() => {
-    if (!current || !speech.settings.enabled || !speech.settings.readQuestion) return
-    if (revealed) return
-    void speech.read(`Question. ${current.question}`)
-    return () => speech.stop()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [current?.id, speech.settings.enabled, speech.settings.readQuestion])
+    if (!current || !speech.settings.enabled) return
 
-  useEffect(() => {
-    if (!current || !revealed) return
-    if (!speech.settings.enabled || !speech.settings.readAnswer) return
-    void speech.read(`Answer. ${current.answer}. ${current.explanation}`)
-    return () => speech.stop()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [revealed, current?.id, speech.settings.enabled, speech.settings.readAnswer])
+    const side = revealed ? 'answer' : 'question'
+    if (side === 'question' && !speech.settings.readQuestion) return
+    if (side === 'answer' && !speech.settings.readAnswer) return
+
+    const text =
+      side === 'question'
+        ? `Question. ${current.question}`
+        : `Answer. ${current.answer}. ${current.explanation}`
+
+    let cancelled = false
+    const timer = window.setTimeout(() => {
+      if (!cancelled) void speech.read(text)
+    }, 80)
+
+    return () => {
+      cancelled = true
+      window.clearTimeout(timer)
+      speech.stop()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional card/reveal-driven speech
+  }, [
+    current?.id,
+    revealed,
+    speech.settings.enabled,
+    speech.settings.readQuestion,
+    speech.settings.readAnswer,
+  ])
 
   useEffect(() => {
     if (!study.sessionActive || !current) return
