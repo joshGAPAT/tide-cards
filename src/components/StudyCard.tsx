@@ -5,18 +5,26 @@ type Props = {
   card: Flashcard
   revealed: boolean
   remaining: number
+  ratingHints: Record<Rating, string>
   onReveal: () => void
   onRate: (rating: Rating) => void
 }
 
-const ratings: { id: Rating; label: string; hint: string; color: string }[] = [
-  { id: 'again', label: 'Again', hint: '1m', color: 'var(--again)' },
-  { id: 'hard', label: 'Hard', hint: 'sooner', color: 'var(--hard)' },
-  { id: 'good', label: 'Good', hint: 'next', color: 'var(--ok)' },
-  { id: 'easy', label: 'Easy', hint: 'later', color: 'var(--easy)' },
+const ratings: { id: Rating; label: string; color: string }[] = [
+  { id: 'again', label: 'Again', color: 'var(--again)' },
+  { id: 'hard', label: 'Hard', color: 'var(--hard)' },
+  { id: 'good', label: 'Good', color: 'var(--ok)' },
+  { id: 'easy', label: 'Easy', color: 'var(--easy)' },
 ]
 
-export function StudyCard({ card, revealed, remaining, onReveal, onRate }: Props) {
+export function StudyCard({
+  card,
+  revealed,
+  remaining,
+  ratingHints,
+  onReveal,
+  onRate,
+}: Props) {
   return (
     <div className="mx-auto w-full max-w-2xl animate-rise">
       <div className="mb-4 flex items-center justify-between gap-3 text-sm text-[var(--ink-soft)]">
@@ -79,7 +87,9 @@ export function StudyCard({ card, revealed, remaining, onReveal, onRate }: Props
                   {r.label}{' '}
                   <span className="text-xs font-normal opacity-80">{i + 1}</span>
                 </span>
-                <span className="block text-xs opacity-90">{r.hint}</span>
+                <span className="block text-xs opacity-90">
+                  in {ratingHints[r.id]}
+                </span>
               </button>
             ))}
           </div>

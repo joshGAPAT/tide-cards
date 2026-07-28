@@ -5,8 +5,6 @@ import { StudyCard } from './components/StudyCard'
 import { useDecks } from './hooks/useDecks'
 import { useSpeech } from './hooks/useSpeech'
 import { useStudyDeck } from './hooks/useStudyDeck'
-import { formatDue } from './lib/scheduler'
-
 export default function App() {
   const decks = useDecks()
   const study = useStudyDeck(decks.activeDeck)
@@ -197,7 +195,7 @@ export default function App() {
             </div>
 
             <p className="mt-3 text-xs text-[var(--ink-soft)]">
-              No daily card limit — use Study all anytime. Ratings still schedule future reviews.
+              Spacing is by answers answered (not clock time). Use Study all anytime.
             </p>
 
             {showSettings && (
@@ -222,24 +220,21 @@ export default function App() {
                 Deck preview
               </p>
               <ul className="space-y-2">
-                {study.filtered.map((card) => {
-                  const state = study.getState(card.id)
-                  return (
-                    <li
-                      key={card.id}
-                      className="rounded-xl bg-white/80 px-3 py-2.5 text-sm"
-                    >
-                      <div className="flex items-start justify-between gap-2">
-                        <span className="font-medium text-[var(--ink)]">
-                          {card.question}
-                        </span>
-                        <span className="shrink-0 text-xs text-[var(--ink-soft)]">
-                          {formatDue(state.due)}
-                        </span>
-                      </div>
-                    </li>
-                  )
-                })}
+                {study.filtered.map((card) => (
+                  <li
+                    key={card.id}
+                    className="rounded-xl bg-white/80 px-3 py-2.5 text-sm"
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <span className="font-medium text-[var(--ink)]">
+                        {card.question}
+                      </span>
+                      <span className="shrink-0 text-xs text-[var(--ink-soft)]">
+                        {study.dueLabel(card.id)}
+                      </span>
+                    </div>
+                  </li>
+                ))}
               </ul>
             </div>
           </section>
@@ -290,6 +285,7 @@ export default function App() {
               card={current}
               revealed={revealed}
               remaining={study.remaining}
+              ratingHints={study.ratingHints(current.id)}
               onReveal={() => {
                 speech.stop()
                 setRevealed(true)
@@ -305,7 +301,7 @@ export default function App() {
                 Session complete
               </p>
               <p className="mt-3 text-[var(--ink-soft)]">
-                Nice work. Study all anytime — there is no daily cap.
+                Nice work. Study all anytime — spacing is by answers, not time.
               </p>
               <button
                 type="button"

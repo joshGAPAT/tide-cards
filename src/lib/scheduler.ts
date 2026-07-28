@@ -1,56 +1,63 @@
 export type Rating = 'again' | 'hard' | 'good' | 'easy'
 
 export type CardState = {
-  /** Interval in days once graduated; learning steps use minutes via due. */
+  /** Spacing interval in number of answers (questions rated). */
   interval: number
   ease: number
   repetitions: number
+  /** Card is due when deck answer-tick >= due. */
   due: number
   lapses: number
 }
 
 export type DeckProgress = Record<string, CardState>
 
-const MINUTE = 60_000
-const DAY = 24 * 60 * 60_000
+export type DeckSchedule = {
+  /** Increments once per rated answer in this deck. */
+  tick: number
+  cards: DeckProgress
+}
 
-export function createCardState(now = Date.now()): CardState {
+export function createCardState(tick = 0): CardState {
   return {
     interval: 0,
     ease: 2.5,
     repetitions: 0,
-    due: now,
+    due: tick,
     lapses: 0,
   }
 }
 
-export function isDue(state: CardState, now = Date.now()): boolean {
-  return state.due <= now
+export function createDeckSchedule(): DeckSchedule {
+  return { tick: 0, cards: {} }
+}
+
+export function isDue(state: CardState, tick: number): boolean {
+  return state.due <= tick
 }
 
 /**
- * Simplified Anki-style scheduling:
- * - Again → back to learning (1 min)
- * - Hard / Good / Easy graduate with increasing intervals
+ * Spaced by answers, not clock time.
+ * Gaps below are "show again after N more rated questions in this deck."
  */
-export function schedule(state: CardState, rating: Rating, now = Date.now()): CardState {
+export function schedule(state: CardState, rating: Rating, tick: number): CardState {
   if (rating === 'again') {
     return {
       interval: 0,
       ease: Math.max(1.3, state.ease - 0.2),
       repetitions: 0,
-      due: now + 1 * MINUTE,
+      due: tick + 1,
       lapses: state.lapses + 1,
     }
   }
 
-  // Still in learning (never successfully reviewed, or reset)
+  // Learning step 0
   if (state.repetitions === 0) {
     if (rating === 'hard') {
       return {
         ...state,
         repetitions: 0,
-        due: now + 3 * MINUTE,
+        due: tick + 3,
       }
     }
     if (rating === 'good') {
@@ -58,38 +65,38 @@ export function schedule(state: CardState, rating: Rating, now = Date.now()): Ca
         ...state,
         repetitions: 1,
         interval: 0,
-        due: now + 10 * MINUTE,
+        due: tick + 10,
       }
     }
-    // easy — graduate immediately
+    // easy — graduate
     return {
-      interval: 4,
+      interval: 40,
       ease: Math.min(3.0, state.ease + 0.15),
       repetitions: 2,
-      due: now + 4 * DAY,
+      due: tick + 40,
       lapses: state.lapses,
     }
   }
 
-  // Second learning step
+  // Learning step 1
   if (state.repetitions === 1) {
     if (rating === 'hard') {
       return {
         ...state,
-        due: now + 5 * MINUTE,
+        due: tick + 5,
       }
     }
-    const interval = rating === 'easy' ? 4 : 1
+    const interval = rating === 'easy' ? 40 : 20
     return {
       interval,
       ease: rating === 'easy' ? Math.min(3.0, state.ease + 0.15) : state.ease,
       repetitions: 2,
-      due: now + interval * DAY,
+      due: tick + interval,
       lapses: state.lapses,
     }
   }
 
-  // Review queue
+  // Review queue — grow gap by ease
   const easeDelta = rating === 'hard' ? -0.15 : rating === 'easy' ? 0.15 : 0
   const ease = Math.max(1.3, Math.min(3.0, state.ease + easeDelta))
   const multiplier =
@@ -100,16 +107,20 @@ export function schedule(state: CardState, rating: Rating, now = Date.now()): Ca
     interval,
     ease,
     repetitions: state.repetitions + 1,
-    due: now + interval * DAY,
+    due: tick + interval,
     lapses: state.lapses,
   }
 }
 
-export function formatDue(due: number, now = Date.now()): string {
-  const delta = due - now
-  if (delta <= 0) return 'now'
-  if (delta < MINUTE) return '<1m'
-  if (delta < 60 * MINUTE) return `${Math.round(delta / MINUTE)}m`
-  if (delta < DAY) return `${Math.round(delta / (60 * MINUTE))}h`
-  return `${Math.round(delta / DAY)}d`
+/** How many answers until this rating would resurface the card. */
+export function previewGap(state: CardState, rating: Rating): number {
+  const next = schedule(state, rating, 0)
+  return next.due
+}
+
+export function formatDue(due: number, tick: number): string {
+  const remaining = due - tick
+  if (remaining <= 0) return 'now'
+  if (remaining === 1) return '1q'
+  return `${remaining}q`
 }
