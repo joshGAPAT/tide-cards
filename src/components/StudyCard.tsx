@@ -1,37 +1,29 @@
 import type { Flashcard } from '../types/deck'
-import type { Rating } from '../lib/scheduler'
+import { ROUND_GAPS, type Rating } from '../lib/scheduler'
 
 type Props = {
   card: Flashcard
   revealed: boolean
   remaining: number
-  ratingHints: Record<Rating, string>
   onReveal: () => void
   onRate: (rating: Rating) => void
 }
 
-const ratings: { id: Rating; label: string; color: string }[] = [
-  { id: 'again', label: 'Again', color: 'var(--again)' },
-  { id: 'hard', label: 'Hard', color: 'var(--hard)' },
-  { id: 'good', label: 'Good', color: 'var(--ok)' },
-  { id: 'easy', label: 'Easy', color: 'var(--easy)' },
+const ratings: { id: Rating; label: string; hint: string; color: string }[] = [
+  { id: 'again', label: 'Again', hint: `in ${ROUND_GAPS.again}q`, color: 'var(--again)' },
+  { id: 'hard', label: 'Hard', hint: `in ${ROUND_GAPS.hard}q`, color: 'var(--hard)' },
+  { id: 'good', label: 'Good', hint: `in ${ROUND_GAPS.good}q`, color: 'var(--ok)' },
+  { id: 'got_it', label: 'I get it', hint: 'done this round', color: 'var(--easy)' },
 ]
 
-export function StudyCard({
-  card,
-  revealed,
-  remaining,
-  ratingHints,
-  onReveal,
-  onRate,
-}: Props) {
+export function StudyCard({ card, revealed, remaining, onReveal, onRate }: Props) {
   return (
     <div className="mx-auto w-full max-w-2xl animate-rise">
       <div className="mb-4 flex items-center justify-between gap-3 text-sm text-[var(--ink-soft)]">
         <span className="rounded-full bg-white/70 px-3 py-1 font-medium shadow-sm">
           {card.topic}
         </span>
-        <span>{remaining} left</span>
+        <span>{remaining} left this round</span>
       </div>
 
       <div
@@ -87,9 +79,7 @@ export function StudyCard({
                   {r.label}{' '}
                   <span className="text-xs font-normal opacity-80">{i + 1}</span>
                 </span>
-                <span className="block text-xs opacity-90">
-                  in {ratingHints[r.id]}
-                </span>
+                <span className="block text-xs opacity-90">{r.hint}</span>
               </button>
             ))}
           </div>

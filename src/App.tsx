@@ -72,11 +72,11 @@ export default function App() {
       }
 
       if (!revealed) return
-      const map: Record<string, 'again' | 'hard' | 'good' | 'easy'> = {
+      const map: Record<string, 'again' | 'hard' | 'good' | 'got_it'> = {
         '1': 'again',
         '2': 'hard',
         '3': 'good',
-        '4': 'easy',
+        '4': 'got_it',
       }
       const rating = map[e.key]
       if (!rating) return
@@ -114,7 +114,7 @@ export default function App() {
           Tide Cards
         </p>
         <p className="mt-2 max-w-xl text-lg text-[var(--ink-soft)]">
-          Multi-deck Anki-style review with CSV import and optional audio.
+          Multi-deck flashcard rounds with CSV import and optional audio.
         </p>
       </header>
 
@@ -130,9 +130,9 @@ export default function App() {
             <p className="mt-3 text-[var(--ink-soft)]">{active.subtitle}</p>
 
             <div className="mt-8 grid grid-cols-3 gap-3">
-              <Stat label="Due now" value={study.stats.due} />
-              <Stat label="New" value={study.stats.newCount} />
               <Stat label="In deck" value={study.stats.total} />
+              <Stat label="Seen before" value={study.stats.learned} />
+              <Stat label="Never got it" value={study.stats.newCount} />
             </div>
 
             <div className="mt-8">
@@ -159,21 +159,11 @@ export default function App() {
             <div className="mt-8 flex flex-wrap gap-3">
               <button
                 type="button"
-                disabled={study.stats.due === 0}
-                onClick={() => study.startSession('due')}
-                className="rounded-2xl bg-[var(--tide)] px-6 py-3.5 text-base font-semibold text-white shadow-lg shadow-[var(--tide)]/20 transition hover:bg-[var(--tide-deep)] disabled:cursor-not-allowed disabled:opacity-40"
-              >
-                {study.stats.due > 0
-                  ? `Study due (${study.stats.due})`
-                  : 'Nothing due'}
-              </button>
-              <button
-                type="button"
                 disabled={study.stats.total === 0}
                 onClick={() => study.startSession('all')}
-                className="rounded-2xl border border-[var(--tide)]/25 bg-white px-6 py-3.5 text-base font-semibold text-[var(--tide-deep)] transition hover:bg-white disabled:cursor-not-allowed disabled:opacity-40"
+                className="rounded-2xl bg-[var(--tide)] px-6 py-3.5 text-base font-semibold text-white shadow-lg shadow-[var(--tide)]/20 transition hover:bg-[var(--tide-deep)] disabled:cursor-not-allowed disabled:opacity-40"
               >
-                Study all ({study.stats.total})
+                Start round ({study.stats.total})
               </button>
               <button
                 type="button"
@@ -196,7 +186,7 @@ export default function App() {
             </div>
 
             <p className="mt-3 text-xs text-[var(--ink-soft)]">
-              Spacing is by answers answered (not clock time). Use Study all anytime.
+              Again / Hard / Good put the card back later in this round. I get it removes it until the next round.
             </p>
 
             {showSettings && (
@@ -231,7 +221,9 @@ export default function App() {
                         {card.question}
                       </span>
                       <span className="shrink-0 text-xs text-[var(--ink-soft)]">
-                        {study.dueLabel(card.id)}
+                        {(study.getState(card.id).gotItCount ?? 0) > 0
+                          ? `got it ×${study.getState(card.id).gotItCount}`
+                          : 'new'}
                       </span>
                     </div>
                   </li>
@@ -267,7 +259,7 @@ export default function App() {
             </button>
             <div className="flex flex-wrap items-center gap-2">
               <span className="rounded-full bg-white/80 px-3 py-1.5 text-xs font-medium text-[var(--ink-soft)]">
-                {active.title} · {study.studyMode === 'all' ? 'all cards' : 'due only'}
+                {active.title} · {study.stats.gotItInRound} got it · {study.remaining} left
               </span>
               <AudioControls
                 compact
@@ -286,7 +278,6 @@ export default function App() {
               card={current}
               revealed={revealed}
               remaining={study.remaining}
-              ratingHints={study.ratingHints(current.id)}
               onReveal={() => {
                 speech.stop()
                 setRevealed(true)
@@ -299,10 +290,10 @@ export default function App() {
           ) : (
             <div className="mx-auto max-w-xl animate-rise rounded-[28px] border border-white/70 bg-white/80 p-10 text-center shadow-lg">
               <p className="font-display text-4xl text-[var(--tide-deep)]">
-                Session complete
+                Round complete
               </p>
               <p className="mt-3 text-[var(--ink-soft)]">
-                Nice work. Study all anytime — spacing is by answers, not time.
+                You cleared every card with “I get it.” Start another round anytime.
               </p>
               <button
                 type="button"

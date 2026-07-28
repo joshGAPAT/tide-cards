@@ -4,22 +4,27 @@ import {
   STARTER_DECK_ID,
 } from '../data/starterDeck'
 import type { Deck, Flashcard } from '../types/deck'
-import {
-  createCardState,
-  createDeckSchedule,
-  type CardState,
-  type DeckSchedule,
-} from './scheduler'
+import { createCardState, type CardState, type DeckProgress } from './scheduler'
 import { defaultSpeechSettings, type SpeechSettings } from './speech'
 
 const DECKS_KEY = 'tide-cards-decks-v2'
 const ACTIVE_DECK_KEY = 'tide-cards-active-deck-v2'
-const PROGRESS_KEY = 'tide-cards-progress-v3'
+const PROGRESS_KEY = 'tide-cards-progress-v4'
+const LEGACY_PROGRESS_V3 = 'tide-cards-progress-v3'
 const LEGACY_PROGRESS_V2 = 'tide-cards-progress-v2'
 const LEGACY_PROGRESS_V1 = 'tide-cards-progress-v1'
 const SPEECH_KEY = 'tide-cards-speech-v1'
 
+export type DeckSchedule = {
+  tick: number
+  cards: DeckProgress
+}
+
 type ProgressByDeck = Record<string, DeckSchedule>
+
+export function createDeckSchedule(): DeckSchedule {
+  return { tick: 0, cards: {} }
+}
 
 function ensureBuiltIns(decks: Deck[]): Deck[] {
   const builtIns = createBuiltInDecks()
@@ -65,45 +70,34 @@ export function saveActiveDeckId(id: string): void {
   localStorage.setItem(ACTIVE_DECK_KEY, id)
 }
 
-function looksLikeCardState(value: unknown): value is CardState {
-  return (
-    !!value &&
-    typeof value === 'object' &&
-    'due' in value &&
-    'ease' in value &&
-    'repetitions' in value
-  )
+function normalizeCard(value: unknown): CardState {
+  if (!value || typeof value !== 'object') return createCardState()
+  const raw = value as Record<string, unknown>
+  return {
+    gotItCount:
+      typeof raw.gotItCount === 'number'
+        ? raw.gotItCount
+        : typeof raw.repetitions === 'number' && raw.repetitions >= 2
+          ? 1
+          : 0,
+    lapses: typeof raw.lapses === 'number' ? raw.lapses : 0,
+  }
 }
 
-/** Convert old time-based or flat maps into answer-tick schedules. */
 function normalizeSchedule(raw: unknown): DeckSchedule {
-  if (
-    raw &&
-    typeof raw === 'object' &&
-    'tick' in raw &&
-    'cards' in raw &&
-    typeof (raw as DeckSchedule).tick === 'number'
-  ) {
-    return raw as DeckSchedule
+  if (raw && typeof raw === 'object' && 'cards' in raw) {
+    const cardsIn = (raw as { cards: Record<string, unknown> }).cards ?? {}
+    const cards: DeckProgress = {}
+    for (const [id, value] of Object.entries(cardsIn)) {
+      cards[id] = normalizeCard(value)
+    }
+    return { tick: 0, cards }
   }
 
-  // Legacy: flat Record<cardId, CardState> with timestamp dues
   if (raw && typeof raw === 'object') {
-    const cards: Record<string, CardState> = {}
+    const cards: DeckProgress = {}
     for (const [id, value] of Object.entries(raw as Record<string, unknown>)) {
-      if (!looksLikeCardState(value)) continue
-      cards[id] = {
-        ...createCardState(0),
-        ease: value.ease,
-        repetitions: value.repetitions,
-        lapses: value.lapses ?? 0,
-        // Old day-intervals become question-intervals; force due now.
-        interval:
-          value.repetitions >= 2
-            ? Math.max(20, Math.min(200, Math.round(value.interval || 20)))
-            : 0,
-        due: 0,
-      }
+      cards[id] = normalizeCard(value)
     }
     return { tick: 0, cards }
   }
@@ -113,30 +107,19 @@ function normalizeSchedule(raw: unknown): DeckSchedule {
 
 function loadAllProgress(): ProgressByDeck {
   try {
-    const raw = localStorage.getItem(PROGRESS_KEY)
-    if (raw) {
+    for (const key of [PROGRESS_KEY, LEGACY_PROGRESS_V3, LEGACY_PROGRESS_V2]) {
+      const raw = localStorage.getItem(key)
+      if (!raw) continue
       const all = JSON.parse(raw) as Record<string, unknown>
       const normalized: ProgressByDeck = {}
       for (const [deckId, value] of Object.entries(all)) {
-        normalized[deckId] = normalizeSchedule(value)
+        const id = deckId === LEGACY_STARTER_DECK_ID ? STARTER_DECK_ID : deckId
+        normalized[id] = normalizeSchedule(value)
       }
-      if (normalized[LEGACY_STARTER_DECK_ID] && !normalized[STARTER_DECK_ID]) {
-        normalized[STARTER_DECK_ID] = normalized[LEGACY_STARTER_DECK_ID]
-        delete normalized[LEGACY_STARTER_DECK_ID]
+      if (key !== PROGRESS_KEY) {
+        localStorage.setItem(PROGRESS_KEY, JSON.stringify(normalized))
       }
       return normalized
-    }
-
-    const v2 = localStorage.getItem(LEGACY_PROGRESS_V2)
-    if (v2) {
-      const legacy = JSON.parse(v2) as Record<string, unknown>
-      const migrated: ProgressByDeck = {}
-      for (const [deckId, value] of Object.entries(legacy)) {
-        const id = deckId === LEGACY_STARTER_DECK_ID ? STARTER_DECK_ID : deckId
-        migrated[id] = normalizeSchedule(value)
-      }
-      localStorage.setItem(PROGRESS_KEY, JSON.stringify(migrated))
-      return migrated
     }
 
     const v1 = localStorage.getItem(LEGACY_PROGRESS_V1)
