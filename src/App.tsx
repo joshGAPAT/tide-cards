@@ -18,8 +18,9 @@ export default function App() {
 
   // Reset reveal in the same render as the card change so we never
   // briefly speak the new answer while revealed is still true.
-  if (current?.id !== cardKey) {
-    setCardKey(current?.id ?? null)
+  const nextCardKey = current?.id ?? null
+  if (nextCardKey !== cardKey) {
+    setCardKey(nextCardKey)
     if (revealed) setRevealed(false)
   }
 
